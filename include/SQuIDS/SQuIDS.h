@@ -377,6 +377,14 @@ class SQuIDS {
   double GetExpectationValueD(const SU_vector& op, unsigned int irho, double x) const;
 
   //***************************************************************
+  ///\brief Returns the expectation value for a given operator for the rho given by irho
+  /// and using linear interpolation in "x"
+  ///\param op operator 
+  ///\param irho index of rho
+  ///\param x value of x
+  double GetExpectationValueD(const SU_vector& op, unsigned int irho, double x, double cutoff, double scale) const;
+
+  //***************************************************************
   ///\brief Returns the expectation value for a given operator for a give state irho in a node ix when
   /// consindering averaging of oscillations. Oscillations are averaged if the phase is larger than scale
   /// the bool pointer is true for all scales that are averaged out. It uses linear interpolation in "x"
@@ -418,6 +426,17 @@ class SQuIDS {
   ///\param scale scale upon which oscillations will be averaged out
   ///\param avg bool array which is true for all scales that were averaged out
   double GetExpectationValueD(const SU_vector& op, unsigned int nrh,  double x, expectationValueDBuffer& buf, double scale, std::vector<bool>& avr) const;
+
+ //***************************************************************
+  ///\brief Returns the expectation value for a given operator for a give state irho in a node ix when
+  /// consindering averaging of oscillations. Oscillations are averaged if the phase is larger than scale
+  /// the bool pointer is true for all scales that are averaged out. It uses linear interpolation in "x"
+  ///\param op operator
+  ///\param irho index of rho
+  ///\param x value of x
+  ///\param scale scale upon which oscillations will be averaged out
+  ///\param avg bool array which is true for all scales that were averaged out
+  double GetExpectationValueD(const SU_vector& op, unsigned int nrh,  double x, expectationValueDBuffer& buf, double cutoff, double scale) const;
 
   ///\brief Returns the initial time of the system
   double Get_t_initial() const{ return(t_ini); }

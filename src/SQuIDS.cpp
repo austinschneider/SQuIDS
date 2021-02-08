@@ -292,6 +292,15 @@ double SQuIDS::GetExpectationValueD(const SU_vector& op, unsigned int nrh, doubl
   return(GetExpectationValueD(op,nrh,xi,buf));
 }
 
+double SQuIDS::GetExpectationValueD(const SU_vector& op, unsigned int nrh, double xi, double cutoff, double scale) const{
+#ifdef SQUIDS_THREAD_LOCAL
+  static SQUIDS_THREAD_LOCAL expectationValueDBuffer buf(nsun);
+#else //slow way, without thread local storage
+  expectationValueDBuffer buf(nsun);
+#endif
+  return(GetExpectationValueD(op,nrh,xi,buf,cutoff,scale));
+}
+
 double SQuIDS::GetExpectationValueD(const SU_vector& op, unsigned int nrh, double xi, double scale, std::vector<bool>& avr) const{
 #ifdef SQUIDS_THREAD_LOCAL
   static SQUIDS_THREAD_LOCAL expectationValueDBuffer buf(nsun);
@@ -320,6 +329,33 @@ double SQuIDS::GetExpectationValueD(const SU_vector& op, unsigned int nrh, doubl
   buf.op=op.Evolve(H0(xi,nrh),t-t_ini);
   //apply operator to state
   return buf.state*buf.op;
+}
+
+double SQuIDS::GetExpectationValueD(const SU_vector& op, unsigned int nrh, double xi,
+                                    SQuIDS::expectationValueDBuffer& buf,
+                                    double cutoff, double scale) const{
+  //find bracketing state entries
+  auto xit=std::lower_bound(x.begin(),x.end(),xi);
+  if(xit==x.end())
+    throw std::runtime_error("SQUIDS::GetExpectationValueD : x value not in the array.");
+  if(xit!=x.begin())
+    xit--;
+  size_t xid=std::distance(x.begin(),xit);
+
+  //linearly interpolate between the two states
+  double f2=((xi-x[xid])/(x[xid+1]-x[xid]));
+  double f1=1-f2;
+  buf.state =f1*state[xid].rho[nrh];
+  buf.state+=f2*state[xid+1].rho[nrh];
+  //compute the evolved operator
+  std::unique_ptr<double[]> evol_buf(new double[H0(xi,nrh).GetEvolveBufferSize()]);
+  SU_vector h0=H0(xi,nrh);
+  h0.PrepareEvolve(evol_buf.get(),t-t_ini);
+  h0.LowPassFilter(evol_buf.get(), cutoff, scale);
+  buf.op=op.Evolve(evol_buf.get());
+  //apply operator to state
+  return (buf.op*state[xid].rho[nrh])*f1 + (buf.op*state[xid+1].rho[nrh])*f2;
+  //return buf.state*buf.op;
 }
 
 double SQuIDS::GetExpectationValueD(const SU_vector& op, unsigned int nrh, double xi,
